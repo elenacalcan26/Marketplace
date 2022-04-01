@@ -58,11 +58,9 @@ class Consumer(Thread):
                     elif op_type == "remove":
                         self.marketplace.remove_from_cart(cart_id, wanted_product)
 
-                    if can_do_op == False:
+                    if can_do_op is False:
                         time.sleep(self.retry_wait_time)
                     else:
                         current_quantity += 1
 
             self.marketplace.place_order(cart_id)
-
-

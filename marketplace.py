@@ -6,7 +6,7 @@ Assignment 1
 March 2021
 """
 
-from threading import currentThread
+from threading import currentThread, Lock
 
 class Marketplace:
     """
@@ -26,19 +26,29 @@ class Marketplace:
         self.producers = {} # dictionar in care pentru fiecare producator retine produsele sale
         self.num_producers = 0
 
-        self.carts = {} # dictionar care pentru fiecare cos retine produsele achitionate producatorul respectiv
+        # dictionar care pentru fiecare cos retine produsele achitionate producatorul respectiv
+        self.carts = {}
         self.num_carts = 0
+
+        self.producer_reg = Lock()
+        self.cart_reg = Lock()
+        self.print_res = Lock()
+
 
 
     def register_producer(self):
         """
         Returns an id for the producer that calls this.
         """
+        curr_producer_id = -1
 
-        self.producers[self.num_producers] = []
-        self.num_producers += 1
+        with self.producer_reg:
+            curr_producer_id = self.num_producers
+            self.producers[self.num_producers] = []
+            self.num_producers += 1
 
-        return self.num_producers - 1
+
+        return curr_producer_id
 
     def publish(self, producer_id, product):
         """
@@ -67,9 +77,15 @@ class Marketplace:
 
         :returns an int representing the cart_id
         """
-        self.carts[self.num_carts] = []
-        self.num_carts += 1
-        return self.num_carts - 1
+
+        curr_cart_id = -1
+
+        with self.cart_reg:
+            curr_cart_id = self.num_carts
+            self.carts[self.num_carts] = []
+            self.num_carts += 1
+
+        return curr_cart_id
 
     def add_to_cart(self, cart_id, product):
         """
@@ -85,7 +101,9 @@ class Marketplace:
         """
 
         for p_id in range(self.num_producers):
+
             if product in self.producers[p_id]:
+
                 tmp = (product, p_id)
                 self.carts[cart_id].append(tmp)
                 self.producers[p_id].remove(product)
@@ -105,12 +123,14 @@ class Marketplace:
         :param product: the product to remove from cart
         """
         p_id = -1
+
         for elem in self.carts[cart_id]:
             if product == elem[0]:
                 self.producers[elem[1]].append(product)
                 p_id = elem[1]
                 break
         self.carts[cart_id].remove((product, p_id))
+
 
     def place_order(self, cart_id):
         """
@@ -122,8 +142,11 @@ class Marketplace:
 
         bought_products = []
 
-        for (product, p_id) in self.carts[cart_id]:
-            print("{} bought {}".format(currentThread().getName(), product))
-            bought_products.append(product)
+        with self.print_res:
+            for elem in self.carts[cart_id]:
+                thread_name = currentThread().getName()
+                product = elem[0]
+                print(f"{thread_name} bought {product}")
+                bought_products.append(elem[0])
 
         return bought_products
