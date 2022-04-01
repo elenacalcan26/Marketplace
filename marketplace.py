@@ -6,6 +6,7 @@ Assignment 1
 March 2021
 """
 
+from threading import currentThread
 
 class Marketplace:
     """
@@ -26,6 +27,7 @@ class Marketplace:
         self.num_producers = 0
 
         self.carts = {} # dictionar care pentru fiecare cos retine produsele achitionate producatorul respectiv
+        self.num_carts = 0
 
 
     def register_producer(self):
@@ -56,8 +58,6 @@ class Marketplace:
 
         self.producers[producer_id].append(product)
 
-        #print(self.producers[producer_id])
-
         return True
 
 
@@ -67,7 +67,9 @@ class Marketplace:
 
         :returns an int representing the cart_id
         """
-        pass
+        self.carts[self.num_carts] = []
+        self.num_carts += 1
+        return self.num_carts - 1
 
     def add_to_cart(self, cart_id, product):
         """
@@ -81,7 +83,16 @@ class Marketplace:
 
         :returns True or False. If the caller receives False, it should wait and then try again
         """
-        pass
+
+        for p_id in range(self.num_producers):
+            if product in self.producers[p_id]:
+                tmp = (product, p_id)
+                self.carts[cart_id].append(tmp)
+                self.producers[p_id].remove(product)
+
+                return True
+
+        return False
 
     def remove_from_cart(self, cart_id, product):
         """
@@ -93,7 +104,13 @@ class Marketplace:
         :type product: Product
         :param product: the product to remove from cart
         """
-        pass
+        p_id = -1
+        for elem in self.carts[cart_id]:
+            if product == elem[0]:
+                self.producers[elem[1]].append(product)
+                p_id = elem[1]
+                break
+        self.carts[cart_id].remove((product, p_id))
 
     def place_order(self, cart_id):
         """
@@ -102,4 +119,11 @@ class Marketplace:
         :type cart_id: Int
         :param cart_id: id cart
         """
-        pass
+
+        bought_products = []
+
+        for (product, p_id) in self.carts[cart_id]:
+            print("{} bought {}".format(currentThread().getName(), product))
+            bought_products.append(product)
+
+        return bought_products
