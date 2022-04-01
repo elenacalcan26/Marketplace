@@ -22,13 +22,21 @@ class Marketplace:
 
         self.queue_size_per_producer = queue_size_per_producer
 
-        pass
+        self.producers = {} # dictionar in care pentru fiecare producator retine produsele sale
+        self.num_producers = 0
+
+        self.carts = {} # dictionar care pentru fiecare cos retine produsele achitionate producatorul respectiv
+
 
     def register_producer(self):
         """
         Returns an id for the producer that calls this.
         """
-        pass
+
+        self.producers[self.num_producers] = []
+        self.num_producers += 1
+
+        return self.num_producers - 1
 
     def publish(self, producer_id, product):
         """
@@ -42,7 +50,16 @@ class Marketplace:
 
         :returns True or False. If the caller receives False, it should wait and then try again.
         """
-        pass
+
+        if len(self.producers[producer_id]) == self.queue_size_per_producer:
+            return False
+
+        self.producers[producer_id].append(product)
+
+        #print(self.producers[producer_id])
+
+        return True
+
 
     def new_cart(self):
         """
