@@ -7,6 +7,123 @@ March 2021
 """
 
 from threading import currentThread, Lock
+import unittest
+
+class TestMarketplace(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        print('SetUpClass')
+
+    def setUp(self):
+        self.marketplace = Marketplace(15)
+        self.prod1 = {  "product_type": "Coffee",
+                        "name": "Indonezia",
+                        "acidity": 5.05,
+                        "roast_level": "MEDIUM",
+                        "price": 1
+                    }
+
+        self.prod2 = {  "product_type": "Tea",
+                        "name": "Linden",
+                        "type": "Herbal",
+                        "price": 9
+                    }
+
+    def test_register_producer(self):
+        print('\nTest Register Producer\n')
+        num_producers = 3
+        res = -1
+
+        for new_id in range(num_producers):
+            res = self.marketplace.register_producer()
+            self.assertEqual(res, new_id)
+
+    def test_publish(self):
+        print('\nTest Publish\n')
+        pid = self.marketplace.register_producer()
+
+        for i in range(self.marketplace.queue_size_per_producer):
+            res = self.marketplace.publish(0, self.prod1)
+            self.assertEqual(res, True)
+
+        res = self.marketplace.publish(0, self.prod2)
+        self.assertEqual(res, False)
+
+
+    def test_new_cart(self):
+        print('\nTest New Cart\n')
+        num_carts = 3
+        tmp = -1
+
+        for i in range(num_carts):
+            tmp = self.marketplace.new_cart()
+            self.assertEqual(tmp, i)
+
+        self.assertEqual(tmp + 1, num_carts)
+
+
+    def test_add_to_cart(self):
+        print('\nTest Add\n')
+        pid = self.marketplace.register_producer()
+        cart_id = self.marketplace.new_cart()
+
+        for _ in range(2):
+            self.marketplace.publish(pid, self.prod2)
+
+        self.assertTrue(self.marketplace.add_to_cart(cart_id, self.prod2))
+        self.assertFalse(self.marketplace.add_to_cart(cart_id, self.prod1))
+
+
+    def test_remove_from_cart(self):
+        print('\nTest Remove\n')
+        pid = self.marketplace.register_producer()
+        cart_id = self.marketplace.new_cart()
+        self.marketplace.producers[pid].extend([self.prod1, self.prod2, self.prod2])
+        self.marketplace.carts[cart_id].extend([(self.prod1, pid), (self.prod2, pid)])
+
+        prod1_occurences_prod = self.marketplace.producers[pid].count(self.prod1)
+        prod1_occurences_cart = self.marketplace.carts[cart_id].count((self.prod1, pid))
+
+        self.marketplace.remove_from_cart(cart_id, self.prod1)
+
+        new_prod1_occurences_prod = self.marketplace.producers[pid].count(self.prod1)
+        new_prod1_occurences_cart = self.marketplace.carts[cart_id].count((self.prod1, pid))
+
+        self.assertGreater(new_prod1_occurences_prod, prod1_occurences_prod)
+        self.assertLess(new_prod1_occurences_cart, prod1_occurences_cart)
+
+
+    def test_place_order(self):
+        print('\nTest Place Order\n')
+        pid = self.marketplace.register_producer()
+        cart_id = self.marketplace.new_cart()
+        expected_cart = [self.prod1, self.prod1, self.prod2]
+
+        for _ in range(0, self.marketplace.queue_size_per_producer, 3):
+            self.marketplace.publish(pid, self.prod2)
+            self.marketplace.publish(pid, self.prod2)
+            self.marketplace.publish(pid, self.prod1)
+
+        self.marketplace.add_to_cart(cart_id, self.prod2)
+
+        for _ in  range(3):
+            self.marketplace.add_to_cart(cart_id, self.prod1)
+
+        self.marketplace.remove_from_cart(cart_id, self.prod1)
+
+        res = self.marketplace.place_order(cart_id)
+
+        count_expected = expected_cart.count(self.prod1)
+        count_res = res.count(self.prod1)
+
+        self.assertEqual(count_expected, count_res)
+
+        count_expected = expected_cart.count(self.prod2)
+        count_res = res.count(self.prod2)
+
+        self.assertEqual(count_expected, count_res)
+
 
 class Marketplace:
     """
@@ -26,7 +143,7 @@ class Marketplace:
         self.producers = {} # dictionar in care pentru fiecare producator retine produsele sale
         self.num_producers = 0
 
-        # dictionar care pentru fiecare cos retine produsele achitionate producatorul respectiv
+        # dictionar care pentru fiecare cos retine produsele achizitionate de la producatorul respectiv
         self.carts = {}
         self.num_carts = 0
 
@@ -123,7 +240,6 @@ class Marketplace:
         :param product: the product to remove from cart
         """
         p_id = -1
-
         for elem in self.carts[cart_id]:
             if product == elem[0]:
                 self.producers[elem[1]].append(product)
