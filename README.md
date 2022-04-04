@@ -2,7 +2,10 @@
 <h5> Calcan Elena-Claudia <br/>
 331CA</h5>  
 
-Programul reprezinta simularea unui marktplace care se bazeaza pe problem Producer-Consumer. 
+### Synopsis 
+--------------------
+
+- Programul reprezinta simularea unui marketplace care se bazeaza pe problema Producer-Consumer. 
 
 ### Flow-ul programului
 ------------------------------------------------ 
