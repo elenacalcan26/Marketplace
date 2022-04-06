@@ -13,7 +13,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 logging.basicConfig(
-        handlers=[RotatingFileHandler('./marketplace.log', maxBytes=100000, backupCount=10, mode='a')],
+        handlers=[RotatingFileHandler('./marketplace.log', maxBytes=100000, backupCount=10,
+                mode='a')],
         level=logging.INFO,
         format="[%(asctime)s] %(levelname)s %(message)s")
 logging.Formatter.converter = time.gmtime
@@ -60,7 +61,6 @@ class TestMarketplace(unittest.TestCase):
         """
         Test publish()
         """
-
 
         print('\nTest Publish\n')
         pid = self.marketplace.register_producer()
@@ -188,27 +188,27 @@ class Marketplace:
         self.add_prod = Lock()
         self.remove_prod = Lock()
 
-        logging.info("Set up Marketplace with queue_size_per_producer = {}".format(queue_size_per_producer))
+        logging.info("Set up Marketplace with queue_size_per_producer = %s",
+                    queue_size_per_producer)
 
 
     def register_producer(self):
         """
         Returns an id for the producer that calls this.
         """
-        curr_producer_id = -1
 
-        """
-        ID-urile producatorilor se asigneaza in ordine consecutiva.
-        Cand un producator este inregistrat, se face o mapare intre id-ul lui
-        si o lista goala, urmand ca aceasta sa fie populate cu produsele sale.
-        """
+        # ID-urile producatorilor se asigneaza in ordine consecutiva.
+        # Cand un producator este inregistrat, se face o mapare intre id-ul lui
+        # si o lista goala, urmand ca aceasta sa fie populate cu produsele sale.
+
+        curr_producer_id = -1
 
         with self.producer_reg:
             curr_producer_id = self.num_producers
             self.producers[self.num_producers] = []
             self.num_producers += 1
 
-            logging.info('Producer registered with id = {}'.format(curr_producer_id))
+            logging.info('Producer registered with id = %s', curr_producer_id)
 
         return curr_producer_id
 
@@ -225,19 +225,17 @@ class Marketplace:
         :returns True or False. If the caller receives False, it should wait and then try again.
         """
 
-        """
-        Produsul publicat este adaugat in lista producatorului. Produsul este adaugat doar
-        atunci cand lista de produse a producatorului nu este plina.
-        """
+        # Produsul publicat este adaugat in lista producatorului. Produsul este adaugat doar
+        # atunci cand lista de produse a producatorului nu este plina.
 
-        logging.info("Producer with id = {} wants to publish product = {}".format(producer_id, product))
+        logging.info("Producer with id = %s wants to publish product = %s", producer_id, product)
 
         if len(self.producers[producer_id]) == self.queue_size_per_producer:
-            logging.info("Producer with id = {} can't publish {}".format(producer_id, product))
+            logging.info("Producer with id = %s can't publish %s", producer_id, product)
             return False
 
         self.producers[producer_id].append(product)
-        logging.info("Producer with id = {} published product = {}".format(producer_id, product))
+        logging.info("Producer with id = %s published product = %s", producer_id, product)
 
         return True
 
@@ -249,12 +247,10 @@ class Marketplace:
         :returns an int representing the cart_id
         """
 
-        """
-        ID-urile cosurilor sunt asignate in mod consecutiv.
-        Cand se inregistreaza un nou cos, se face o mapare intre id-ul cosului
-        si o lista de tupluri ce retine tupluri formate din produsul adaugat in cos
-        si id-ul producatorului de unde l-a luat.
-        """
+        # ID-urile cosurilor sunt asignate in mod consecutiv.
+        # Cand se inregistreaza un nou cos, se face o mapare intre id-ul cosului
+        # si o lista de tupluri ce retine tupluri formate din produsul adaugat in cos
+        # si id-ul producatorului de unde l-a luat.
 
         curr_cart_id = -1
 
@@ -263,7 +259,7 @@ class Marketplace:
             self.carts[self.num_carts] = []
             self.num_carts += 1
 
-        logging.info("Consumer has cart registered with id = {}".format(curr_cart_id))
+        logging.info("Consumer has cart registered cart with id = %s ", curr_cart_id)
 
         return curr_cart_id
 
@@ -280,19 +276,19 @@ class Marketplace:
         :returns True or False. If the caller receives False, it should wait and then try again
         """
 
-        """
-        La adaugarea unui produs intr-un cos, se cauta primul producator ce are produsul
-        dorit. Produsul este sters din lista de produse a producatorului, devenind astfel
-        indisponibil, iar in cos se adauga un tuplu format din produs si id-ul producatorului.
-        """
+        # La adaugarea unui produs intr-un cos, se cauta primul producator ce are produsul
+        # dorit. Produsul este sters din lista de produse a producatorului, devenind astfel
+        # indisponibil, iar in cos se adauga un tuplu format din produs si id-ul producatorului.
+
         with self.add_prod:
-            logging.info("Consumer with cart_id = {} wants to add product = {}".format(cart_id, product))
+            logging.info("Consumer with cart_id = %s wants to add product = %s",
+                        cart_id, product)
 
             for p_id in range(self.num_producers):
 
                 if product in self.producers[p_id]:
-                    logging.info("Consumer with cart_id = {} bought product = {} from producer with id = "
-                                .format(cart_id, product, p_id))
+                    logging.info('''Consumer with cart_id = %s bought product = %s from producer
+                                with id = %s''', cart_id, product, p_id)
 
                     self.producers[p_id].remove(product)
                     self.carts[cart_id].append((product, p_id))
@@ -312,24 +308,23 @@ class Marketplace:
         :param product: the product to remove from cart
         """
 
-        """
-        Se cauta tuplul ce contine produsul in lista corespunzatoare cosului.
-        Produsul este adaugat inapoi in lista producatorului cu id-ul cu care
-        s-a format tuplul, astfel produsul devine din nou disponibil.
-        Tuplul ce a fost format este sters din lista cosului respectiv.
-        """
+        # Se cauta tuplul ce contine produsul in lista corespunzatoare cosului.
+        # Produsul este adaugat inapoi in lista producatorului cu id-ul cu care
+        # s-a format tuplul, astfel produsul devine din nou disponibil.
+        # Tuplul ce a fost format este sters din lista cosului respectiv.
+
         with self.remove_prod:
 
-            logging.info("Consumer  with cart_id = {} wants to remove product = {}"
-                        .format(cart_id, product))
+            logging.info("Consumer  with cart_id = %s wants to remove product = %s",
+                        cart_id, product)
 
             p_id = -1
             for elem in self.carts[cart_id]:
                 if product == elem[0]:
                     self.producers[elem[1]].append(product)
                     p_id = elem[1]
-                    logging.info("Consumer with cart_id = {} removed product = {} from producer id = {}"
-                                .format(cart_id, product, p_id))
+                    logging.info('''Consumer with cart_id = %s removed product = %s
+                                from producer id = %s''', cart_id, product, p_id)
                     break
             self.carts[cart_id].remove((product, p_id))
 
@@ -342,21 +337,20 @@ class Marketplace:
         :param cart_id: id cart
         """
 
-        """
-        Se parcurg produsele consumatorului ce se afla in cos si se
-        afiseaza mesajul de output.
-        """
+        # Se parcurg produsele consumatorului ce se afla in cos si se
+        # afiseaza mesajul de output.
 
         bought_products = []
 
         with self.print_res:
-            logging.info("Consumer with cart_id = {} place order".format(cart_id))
+            logging.info("Consumer with cart_id = %s place order", cart_id)
 
             for elem in self.carts[cart_id]:
                 thread_name = currentThread().getName()
                 product = elem[0]
                 print(f"{thread_name} bought {product}")
                 bought_products.append(elem[0])
-            logging.info("Consumer with cart_id = {} has products {}".format(cart_id, str(bought_products)))
+            logging.info("Consumer with cart_id = %s has products %s",
+                        cart_id, str(bought_products))
 
         return bought_products
